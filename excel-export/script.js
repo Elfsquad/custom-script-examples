@@ -1,12 +1,18 @@
+const scriptTag = document.createElement('script');
+scriptTag.setAttribute('src', 'https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js');
+scriptTag.addEventListener('load', () => { 
+    generateExcelSheet();
+});
+document.body.appendChild(scriptTag);
+
 async function generateExcelSheet() {
     const quotation = await fetchQuotation();  
+    const quotationLines = await fetchQuotationLines();
 
-    const quotationLines = quotation.lines;
     const tableData = quotationLines
         .map(l => [ l.articleCode, l.description, l.quantityAmount ]);
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('Lines');
-
     worksheet.addTable({
         name: 'Lines',
         ref: 'A1',
@@ -16,13 +22,15 @@ async function generateExcelSheet() {
         columns: ['Code', 'Description', 'Quantity'].map(n => ({name: n, filterButton: true})),
         rows: tableData,
     });
-
     const name = `${quotation.quotationNumber}v${quotation.versionNumber}.xlsx`;
     saveWorkbook(workbook, name);
 }
-
 async function fetchQuotation(){
-    return (await api.fetch(`api/2/quotations/${parameters.quotationId}?include=Lines`)).body;
+    return (await api.fetch(`data/1/quotations/${parameters.quotationId}`)).body;
+}
+
+async function fetchQuotationLines() {
+    return await fetchAll(`data/1/quotationlines?\$filter=quotationId eq ${parameters.quotationId}`);
 }
 
 async function fetchAll(url) {
@@ -49,10 +57,3 @@ function saveWorkbook(workbook, name){
         a.remove();
     });
 }
-
-const scriptTag = document.createElement('script');
-scriptTag.setAttribute('src', 'https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js');
-scriptTag.addEventListener('load', () => { 
-    generateExcelSheet();
-});
-document.body.appendChild(scriptTag);
